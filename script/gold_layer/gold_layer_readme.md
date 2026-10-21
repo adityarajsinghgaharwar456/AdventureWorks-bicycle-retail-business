@@ -112,24 +112,16 @@ This view combines customer identity and profile details with ERP birth-date and
 
 ### Transformation logic
 
-1. Creates `customer_key` with `ROW_NUMBER()`.
-2. Keeps the original CRM identifiers as `customer_id` and `customer_number`.
-3. Combines first and last name into `full_name`.
-4. If CRM gender (`cst_gndr`) is `'Unknown'`, uses ERP gender (`gen`); otherwise, keeps the CRM value.
-5. Uses `LEFT JOIN` to bring in ERP details and location.
-
-### Column dictionary
-
 | Column | Data type* | Description |
 |:--|:--|:--|
-| `customer_key` | `BIGINT` | Generated surrogate key used by the sales fact view |
+| `customer_key` | `BIGINT` | Generated surrogate key that later to be used in 'sales fact' view |
 | `customer_id` | `INTEGER` | Original customer ID from CRM |
 | `customer_number` | `VARCHAR(50)` | Customer reference from `cst_key` |
 | `full_name` | `TEXT` | First and last name combined |
-| `gender` | `VARCHAR(50)` | Gender after applying the CRM-first fallback rule |
+| `gender` | `VARCHAR(50)` | If CRM gender (`cst_gndr`) is `'Unknown'`, uses ERP gender (`gen`); otherwise, keeps the CRM value. |
 | `marital_status` | `VARCHAR(50)` | Customer marital status from CRM |
 | `birth_date` | `DATE` | Customer birth date from ERP customer details |
-| `cntry` | `VARCHAR(50)` | Country from ERP location data |
+| `cntry` | `VARCHAR(50)` | Uses `LEFT JOIN` to bring in ERP details and location. |
 | `create_date` | `DATE` | Date the CRM customer record was created |
 
 ---
@@ -140,18 +132,11 @@ This view combines customer identity and profile details with ERP birth-date and
 
 This view combines product details with category, subcategory and maintenance information.
 
-### Transformation logic
-
-1. Creates `product_key` with `ROW_NUMBER()`.
-2. Joins product data to category data using `prd_cat_id = id`.
-3. Applies `WHERE prd_end_dt IS NULL` to include only products whose production end date is not populated.
-4. Renames selected fields to make them easier to understand in reports.
-
 ### Column dictionary
 
 | Column | Data type* | Description |
 |:--|:--|:--|
-| `product_key` | `BIGINT` | Generated surrogate key used by the sales fact view |
+| `product_key` | `BIGINT` | Generated surrogate key usring row_number(),later to be used as foreign key in fact_sales |
 | `product_id` | `INTEGER` | Original product ID from CRM |
 | `product_number` | `VARCHAR(50)` | Product code used to match sales records |
 | `category_id` | `VARCHAR(50)` | Category identifier from the product record |
@@ -164,7 +149,8 @@ This view combines product details with category, subcategory and maintenance in
 | `maintenance` | `VARCHAR(50)` | Maintenance attribute from category data |
 
 > [!NOTE]
-> The filter `prd_end_dt IS NULL` is the project's rule for selecting active products. This depends on how the source system uses the end-date field.
+> Applies `WHERE prd_end_dt IS NULL` to include only products whose production end date is not populated. This depends on how the source system uses the end-date field.
+> Renames selected fields to make them easier to understand in reports.
 
 ---
 
@@ -176,19 +162,11 @@ The fact view keeps sales transaction fields and uses the dimension views to att
 
 ### Transformation logic
 
-1. Reads sales records from `crm_sales_details`.
-2. Matches the sales product code (`sls_prd_key`) to `dim_products.product_number`.
-3. Matches the sales customer ID (`sls_cust_id`) to `dim_customers.customer_id`.
-4. Selects `product_key` and `customer_key` from the matching dimension views.
-5. Gives the order number, dates, quantity, price and sales amount clearer aliases.
-
-### Column dictionary
-
 | Column | Data type* | Description |
 |:--|:--|:--|
 | `order_no` | `VARCHAR(50)` | Sales order reference from `sls_ord_num` |
-| `product_key` | `BIGINT` | Product dimension key |
-| `customer_key` | `BIGINT` | Customer dimension key |
+| `product_key` | `BIGINT` | Matches the (`sls_prd_key`) to `dim_products.product_number`. |
+| `customer_key` | `BIGINT` | Matches the sales customer ID (`sls_cust_id`) to `dim_customers.customer_id`. |
 | `order_date` | `DATE` | Order date |
 | `ship_date` | `DATE` | Shipping date |
 | `due_date` | `DATE` | Due date recorded for the order |
@@ -198,7 +176,8 @@ The fact view keeps sales transaction fields and uses the dimension views to att
 
 ### Fact grain
 
-Each output row comes from a row in `crm_sales_details` after the dimension joins. Confirm the source grain before assuming that each row represents a complete order; an order can contain multiple sales lines.
+> Each output row comes from a row in `silver_layer.crm_sales_details` after the dimension joins. Confirm the source grain before assuming that each row represents a complete order; an order can contain multiple sales lines.
+> Gives the order number, dates, quantity, price and sales amount clearer aliases.
 
 ---
 
@@ -215,92 +194,6 @@ Each output row comes from a row in `crm_sales_details` after the dimension join
 
 ---
 
-## 🧪 Validation Checklist
-
-Use the complete database for these checks. The CSV files shared with this project are **partial reference extracts only** and should not be treated as full output or as proof of complete data quality.
-
-- [ ] Confirm all three Gold Layer views run successfully.
-- [ ] Compare Gold view row counts with the relevant Silver source data and explain expected differences.
-- [ ] Check whether `customer_key` and `product_key` are unique.
-- [ ] Check for sales rows without a matching customer or product.
-- [ ] Review missing customer and product attributes against the complete data.
-- [ ] Confirm the business definition of `total_sales` and `price`.
-- [ ] Confirm the grain of `fact_sales` before calculating order counts or average order value.
-- [ ] Consider stable surrogate keys if the model will be refreshed regularly.
-- [ ] Verify actual output types in PostgreSQL before publishing a formal schema contract.
-
-### Query 1 — View row counts
-
-```sql
-SELECT 'dim_customers' AS view_name, COUNT(*) AS row_count
-FROM gold_layer.dim_customers
-UNION ALL
-SELECT 'dim_products', COUNT(*)
-FROM gold_layer.dim_products
-UNION ALL
-SELECT 'fact_sales', COUNT(*)
-FROM gold_layer.fact_sales;
-```
-
-### Query 2 — Check dimension key duplicates
-
-```sql
-SELECT customer_key, COUNT(*) AS row_count
-FROM gold_layer.dim_customers
-GROUP BY customer_key
-HAVING COUNT(*) > 1;
-
-SELECT product_key, COUNT(*) AS row_count
-FROM gold_layer.dim_products
-GROUP BY product_key
-HAVING COUNT(*) > 1;
-```
-
-### Query 3 — Check unmatched dimension joins
-
-```sql
-SELECT COUNT(*) AS missing_customer_matches
-FROM gold_layer.fact_sales f
-LEFT JOIN gold_layer.dim_customers c
-    ON f.customer_key = c.customer_key
-WHERE c.customer_key IS NULL;
-
-SELECT COUNT(*) AS missing_product_matches
-FROM gold_layer.fact_sales f
-LEFT JOIN gold_layer.dim_products p
-    ON f.product_key = p.product_key
-WHERE p.product_key IS NULL;
-```
-
-### Query 4 — Verify actual view column types
-
-```sql
-SELECT
-    table_name,
-    column_name,
-    data_type,
-    character_maximum_length
-FROM information_schema.columns
-WHERE table_schema = 'gold_layer'
-  AND table_name IN ('dim_customers', 'dim_products', 'fact_sales')
-ORDER BY table_name, ordinal_position;
-```
-
----
-
-## 📂 Reference CSV Files
-
-The CSV extracts are included only to help illustrate the view structure and sample values.
-
-| File | Reference purpose |
-|:--|:--|
-| `dim_customers.csv` | Example of the customer dimension output |
-| `dim_products.csv` | Example of the product dimension output |
-| `fact_sales.csv` | Example of the sales fact output |
-
-No row counts, revenue totals or completeness claims are reported from these samples because they do not contain the full dataset.
-
----
 
 ## 🎯 Final Takeaway
 
