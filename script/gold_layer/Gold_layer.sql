@@ -11,27 +11,13 @@ Objective:-
   B) Data Modelling
   C) Combile tables into broarder and consolidated ones
   D) classify Consolidated table into "Dimmension Tables" and "Fact Table" 
-Gold_layer Steps:-
-  1) join crm_cust + erp_cust_detail + erp_locaion from silver_layer schema = 'dim_Customers' table in gold_layer schema
-  2) Data integration of Duplicated column cst_gendr and gen (business rule call 'cst_gendr' as more authentic then 'gen') 
-  3) Generate surrogate key --> 'customer_key' for joined customer_table to make complex id into simple and easy to 
-     underatiod id and also act as foreign key in "fact_table_sales"   
-  4) Generate Create View as "dim_customers()" for joined customer_table 
-  5) Join crm_prd_info + erp_prd_cat table in silver_layer schema = 'dim_products' table in gold_layer
-  6) In crm_prd_info table remove products whose production has been stopped(filter products with production_end_date as null)
-  7) Generate surrogate key --> 'Product_key' like earlier we did --> later act as foreign_key in 'fact_sales' table 
-  8) Generate create view as "dim_products()" for joined product_tables
-  9) transform and load crm_sales_details table from silver_layer schema into gold_layer as dim'fact_sales'  and establish
-     its relation with dimension tables(dim_customers and dim_products)
 
 Key SQL Functions & Features Used:-
   1) DDL(Create View), DQL(Select,From,where)
   2) Join
   3) Conditional Logics - Case...when()
   4) Window Function - Row_number
-
 */ 
-
 ---------------------------------------------------------------------------------------------------------------------------
 --                                          CREATE VIEW - DIM_CUSTOMERS TABLE
 ---------------------------------------------------------------------------------------------------------------------------
