@@ -12,14 +12,14 @@
 
 ## 📌 Project Overview
 
-The Silver Layer is where data loaded into Bronze is cleaned, standardised and prepared for the next stage of the warehouse. Its main focus is **data quality and consistency**, not data modelling. The six source tables remain separate while transformation rules make their values more reliable and easier to use.
+The Silver Layer is where raw, messy, uncleaned data is loaded from bronze_layer, where it get cleaned, standardised and prepared for the next stage of the warehouse. Its main focus is **data quality and consistency**, not data modelling. The six source tables remain separate while transformation rules make their values more reliable and easier to use.
 
 | Focus area | Work performed |
 |:--|:--|
-| Cleansing | Trims spaces, handles missing values and removes duplicate customer IDs |
+| Cleansing | Trims spaces, handles missing, unwanted spaces values and removes duplicate customer IDs |
 | Standardisation | Converts coded values into readable labels and standardises selected country names |
-| Validation | Handles malformed date representations and future birth dates |
-| Data correction | Corrects price values and recalculates sales using price × quantity |
+| Validation | Handles misrepresented date values and out of range birth dates |
+| Data correction | Corrects price values(lke -ve, 0, null) and recalculates sales using price × quantity |
 | Data preparation | Extracts product category IDs and derives product end dates |
 | Automation | Refreshes all six tables through one stored procedure with progress notices and error details |
 
@@ -56,7 +56,7 @@ flowchart TD
 
 ## 🧼 Transformation Details & Column Dictionary
 
-The column types below come from the `CREATE TABLE` definitions in `Silver_layer.sql`. Every table also has a `created_at DATE DEFAULT CURRENT_DATE` metadata column. The procedure omits this column from its inserts, so PostgreSQL fills it with the date of the load.
+The data types below come from the `CREATE TABLE` definitions in the beginnig of silver_layer.sql querry. Every table also has a `created_at DATE DEFAULT CURRENT_DATE`. The procedure omits this column from its inserts, so PostgreSQL fills it with the date of the load.
 
 ## 1. `crm_cust_info` — CRM Customer Information
 
@@ -85,12 +85,12 @@ The column types below come from the `CREATE TABLE` definitions in `Silver_layer
 |:--|:--|:--|
 | `prd_id` | `INT` | Product ID retained from Bronze. |
 | `prd_cat_id` | `VARCHAR(50)` | Extracted from `prd_key` with a regular expression; hyphens in the extracted category code are replaced with underscores. |
-| `prd_key` | `VARCHAR(50)` | Rebuilt from `SUBSTRING(prd_key FROM 7)`, removing the leading category portion for product matching. |
+| `prd_key` | `VARCHAR(50)` | Rebuilt from `SUBSTRING(prd_key FROM 7)`, removing the initial 7 digit category portion for product matching. |
 | `prd_nm` | `VARCHAR(50)` | Product name retained from Bronze. |
 | `prd_cost` | `INT` | NULL cost values are replaced with `0` using `COALESCE()`. |
 | `prd_line` | `VARCHAR(50)` | `M` → `Mountains`, `R` → `Road`, `S` → `Other Sales`, `T` → `Touring`; other values become `Unknown`. |
 | `prd_start_dt` | `DATE` | Product start date retained from Bronze. |
-| `prd_end_dt` | `DATE` | Derived from the next `prd_start_dt` for the same product name using `LEAD()`, minus one day. The final version has no next start date, so its end date is NULL. |
+| `prd_end_dt` | `DATE` | Derived from the next `prd_start_dt` for the same product name using `LEAD()`, minus one day as source end_date has error(date before prd_start_date which is impossible). The final version has no next start date, so its end date is NULL. |
 | `created_at` | `DATE` | Automatically populated with `CURRENT_DATE` during insertion into Silver. |
 
 **Key rule:** `LEAD()` looks at the next start date for the same product name. The previous version's end date is set to one day before that date.
