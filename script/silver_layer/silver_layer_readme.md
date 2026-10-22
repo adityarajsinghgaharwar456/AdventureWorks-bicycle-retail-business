@@ -90,10 +90,9 @@ The data types below come from the `CREATE TABLE` definitions in the beginnig of
 | `prd_cost` | `INT` | NULL cost values are replaced with `0` using `COALESCE()`. |
 | `prd_line` | `VARCHAR(50)` | `M` → `Mountains`, `R` → `Road`, `S` → `Other Sales`, `T` → `Touring`; other values become `Unknown`. |
 | `prd_start_dt` | `DATE` | Product start date retained from Bronze. |
-| `prd_end_dt` | `DATE` | Derived from the next `prd_start_dt` for the same product name using `LEAD()`, minus one day as source end_date has error(date before prd_start_date which is impossible). The final version has no next start date, so its end date is NULL. |
+| `prd_end_dt` | `DATE` | Derived from the next `prd_start_dt` for the same product name using `LEAD()`, minus one day as source end_date has error(date before prd_start_date which is impossible). In the last of leading date column of each partition having no next start date, its end date gets NULL. |
 | `created_at` | `DATE` | Automatically populated with `CURRENT_DATE` during insertion into Silver. |
 
-**Key rule:** `LEAD()` looks at the next start date for the same product name. The previous version's end date is set to one day before that date.
 
 ---
 
@@ -107,17 +106,15 @@ The data types below come from the `CREATE TABLE` definitions in the beginnig of
 | `sls_prd_key` | `VARCHAR(50)` | Product reference retained for matching in later stages. |
 | `sls_cust_id` | `INT` | Customer ID retained from Bronze. |
 | `sls_order_dt` | `DATE` | Eight-character `YYYYMMDD` value is reformatted and cast to `DATE`; other string lengths become NULL. |
-| `sls_ship_dt` | `DATE` | Eight-character `YYYYMMDD` value is reformatted and cast to `DATE`; other string lengths become NULL. |
-| `sls_due_dt` | `DATE` | Eight-character `YYYYMMDD` value is reformatted and cast to `DATE`; other string lengths become NULL. |
-| `sls_quantity` | `INT` | Quantity retained from Bronze; the current SQL does not apply `ABS()` or another correction to quantity. |
+| `sls_ship_dt` | `DATE` | Same technique as used in sls_order_dt column. |
+| `sls_due_dt` | `DATE` | Same technique as used in sls_order_dt column. |
+| `sls_quantity` | `INT` | Quantity retained from Bronze as everything is fine here |
 | `sls_price` | `NUMERIC` | If price is NULL or zero, derives it as `sls_sales / sls_quantity`. If negative, `ABS()` makes it positive; otherwise, keeps the original price. |
 | `sls_sales` | `NUMERIC` | Recalculated as the cleaned price multiplied by quantity. |
 | `created_at` | `DATE` | Automatically populated with `CURRENT_DATE` during insertion into Silver. |
 
 **Sales calculation:** the SQL sets `sls_sales` to the cleaned `sls_price * sls_quantity`.
 
-> [!IMPORTANT]
-> The script checks date-string length but does not separately validate every calendar-invalid date before casting. Also, deriving price as `sls_sales / sls_quantity` can fail if quantity is zero. These are useful edge cases to test if the procedure is extended.
 
 ---
 
@@ -197,7 +194,7 @@ flowchart TD
 | `TRUNCATE` | Clears the existing target table before refresh |
 | `INSERT INTO ... SELECT` | Loads transformed rows from Bronze into Silver |
 | `ROW_NUMBER()` | Ranks repeated customer IDs to keep the latest record |
-| `SUBSTRING()` and regex | Extracts product category/key portions |
+| `SUBSTRING()` and regex | use to clean/extract digit/alphabet/symbols of data --> deep clean |
 | `COALESCE()` | Replaces NULL product costs with zero |
 | `CASE WHEN` | Applies rules to coded values, dates and prices |
 | `TRIM()`, `REPLACE()`, `UPPER()`, `INITCAP()` | Cleans strings and standardises labels |
@@ -206,84 +203,9 @@ flowchart TD
 | `ILIKE` | Performs case-insensitive matching of the `NAS` ID prefix |
 | `RAISE NOTICE` | Displays progress and error details |
 
-> [!WARNING]
-> The exception handler logs errors with `RAISE NOTICE` but does not re-raise them. As a result, a caller may not receive a failure status as expected. For production use, consider re-raising the exception after logging it and review whether the refresh should be atomic across all six tables.
-
 ---
 
-## 🧪 Validation Checklist
 
-These checks should be run against the database after the procedure. The README documents the SQL transformations; it does not claim that all checks have already passed.
-
-- [ ] Confirm the procedure completes and all six Silver tables can be queried.
-- [ ] Check repeated or NULL `cst_id` values in `crm_cust_info`.
-- [ ] Review gender and marital-status values for unexpected labels.
-- [ ] Check missing or negative product costs and review derived `prd_end_dt` values.
-- [ ] Review sales rows with NULL dates, zero quantity, missing prices or unexpected sales amounts.
-- [ ] Check ERP customer IDs against CRM customer keys before later integration.
-- [ ] Check country labels for remaining spelling or formatting variants.
-- [ ] Confirm `erp_prd_cat.id` values are unique and non-NULL.
-- [ ] Verify `created_at` is populated as expected.
-- [ ] Consider transaction and error-handling improvements before production use.
-
-### Query 1 — Check duplicate customer IDs
-
-```sql
-SELECT cst_id, COUNT(*) AS row_count
-FROM silver_layer.crm_cust_info
-GROUP BY cst_id
-HAVING COUNT(*) > 1;
-```
-
-### Query 2 — Review customer labels
-
-```sql
-SELECT DISTINCT cst_gndr
-FROM silver_layer.crm_cust_info;
-
-SELECT DISTINCT cst_marital_status
-FROM silver_layer.crm_cust_info;
-```
-
-### Query 3 — Review potentially problematic sales rows
-
-```sql
-SELECT *
-FROM silver_layer.crm_sales_details
-WHERE sls_order_dt IS NULL
-   OR sls_ship_dt IS NULL
-   OR sls_due_dt IS NULL
-   OR sls_quantity = 0
-   OR sls_price IS NULL
-   OR sls_sales IS NULL;
-```
-
-### Query 4 — Check product date ranges
-
-```sql
-SELECT *
-FROM silver_layer.crm_prd_info
-WHERE prd_end_dt IS NOT NULL
-  AND prd_start_dt > prd_end_dt;
-```
-
-### Query 5 — Check category key duplicates
-
-```sql
-SELECT id, COUNT(*) AS row_count
-FROM silver_layer.erp_prd_cat
-GROUP BY id
-HAVING COUNT(*) > 1;
-```
-
----
-
-## 📎 Scope & Notes
-
-- The transformations documented here are based on the supplied `Silver_layer.sql`.
-- Silver keeps the six tables separate; this layer does not create the Gold Layer dimensional model.
-- `created_at` records the date the row was inserted into Silver, not the original source-record creation date.
-- Column types reflect the Silver `CREATE TABLE` statements, not inferred types from CSV extracts.
 
 ---
 
