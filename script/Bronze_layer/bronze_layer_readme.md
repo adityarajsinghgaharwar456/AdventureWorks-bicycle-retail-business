@@ -93,7 +93,6 @@ SELECT * FROM table_info();
 | CSV ingestion | `COPY ... FROM ... CSV HEADER` |
 | Automation | `load_tables()` stored procedure |
 | Row-count validation | `TABLE_INFO()` SQL function and `COUNT(*)` |
-| Progress / error visibility | Mentioned as an objective in comments, but the shown `load_tables()` procedure does **not** currently include `RAISE NOTICE` or an exception handler. |
 
 ## 🚦 Layer Boundaries
 
