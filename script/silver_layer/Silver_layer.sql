@@ -7,51 +7,12 @@ Intro:
   Main focus of this schema to transform data through in-depth cleaning and validating each columns of all the tables
   across silver_schema
   
-Script Purpose:
+Script Objectivr:
   A) Data Cleansing   
   B) Data Standardization  
   C) Data Normalization 
   D) Derived Columns 
   E) Data Enrichment
-
-Data Transformation Steps:-  
- 1) Starts with creating table  by defining column name and data type. 
- 2) Addition of column 'Created_at' in all tables
- 3) Thereafter,Inserting values from data in bronze tables after cleaning,validating and stardardizing unclean data
- 4) The following changes made in all tables while cleaning data are mentioned below :--
-   --> crm_cust_info
-    A) remove duplicate rows by identitfying duplicated unique/primary key using window function
-    B) trimming cst_first_name and Last_name
-    C) mapping coded gender and marital status to defined easy to understand description
-
-   --> crm_prd_info
-    A) Extract prd_Cat_id from prd_key using substring() and Regex Function and Add new column - 'prd_cat_id'
-    B) Handling null vaulues in prd_cost using coalesce()
-    C) Mapping coded prd_line to descripted words for easy understanding.
-    D) Fixing start_date > End_date
-
-   -->crm_sales_details 
-    A) cleaning dates by handling out of range dates and convert date with int data type to correct date format(yyyy-mm-dd)  
-    B) validate sls_sales, sls_quantity and sls_price by converting negative integer to positive and correct sls_sales 
-       total by recalculating sls_price*sls_quantity
-
-   -->erp_cust_details
-    A) Cleaning CID & validating crm_cust_details.cst_key = erp_cust_details.cid
-    B) Replacing bdate > current_date with null
-    c) Cleaning gen by ensuring uniformity in "Male" and "Female"
-
-   -->erp_location
-    A) clean cid and validate erp_location.cid = crm_cust_info.cst_key
-    B) Cleaning Cntry by replacing blank value with "Unknown" and merging multiple names of 1 country name to 
-       common standared country name
-
-   -->erp_prd_cat
-    A)everthing is cleaned in this table. 
-
- 5) Finally, Create stored procedure - 'silver_layer.load_silver_layer_tables()' that include truncating and 
-    inserting cleaned values to all tables. Some extra features are included like:--
-   A) Raise Notice after completing each steps
-   B) Include 'Exception' to display reason of error(in case if happens) using 'SQLERRM' and 'SQLSTATE' of PLPGSQL language
 
 Key SQL Functions & Features Used:-
   1) Stored Procedure (PLPGSQL Language) - Begin...End, Raise Notice, When..others, SQLERRM SQLSTATE
