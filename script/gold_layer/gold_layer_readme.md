@@ -43,12 +43,6 @@ flowchart TD
     style G fill:#f3e8ff,stroke:#9333ea,color:#581c87
 ```
 
-| Layer | Role in this project |
-|:--|:--|
-| 🥉 **Bronze** | Loads source data and supports load checks through procedures and row-count summaries. |
-| 🥈 **Silver** | Cleans and standardises data, handles issues such as duplicates and NULL values, and makes source data more consistent. |
-| 🥇 **Gold** | Brings related data together and presents it through dimensions and a sales fact view. |
-
 ## ⭐ Gold Layer Data Model
 
 The model uses a **star-schema style design**. Customer and product descriptions are stored in separate dimension views, while sales transactions sit in the centre.
