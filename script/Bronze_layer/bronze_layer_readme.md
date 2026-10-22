@@ -105,9 +105,7 @@ SELECT * FROM table_info();
 ## ⚠️ Implementation Notes
 
 - **Full refresh:** `TRUNCATE` followed by `COPY` replaces existing table contents on each run; this is not an incremental load.
-- **File paths:** the procedure uses local Windows `F:\...` CSV paths. PostgreSQL must be able to access those files from the server side, and the configured paths must exist in the execution environment.
 - **No transformations here:** the procedure does not cleanse, derive, standardise, join, or model imported data.
-- **Operational hardening:** consider adding explicit progress notices, exception handling with re-raise, and a transaction-safe refresh strategy before production use.
 
 ---
 
