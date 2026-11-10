@@ -197,7 +197,7 @@ Example:
 
 > **Only 20.25% of customers return to store within year**
 
-This indicates that less customers are taking interest on our products and come back to store. But there may be also chances that goods are performed well enough that customer don’t require to comeback.
+This indicates that less customers are coming back for shopping within one year which is not a good signal. but this may also indicate that company is selling high quality products which are highly durable and less chancess of damage. Especially bike, that shows low maintenance requirement and fetures all services, because of that  customers do not return for again and again for servicing or any other add-on purchase
 
 ### Customer Demographic Analysis
 
@@ -264,6 +264,7 @@ The master table contains derived and calculated columns including average/unit 
 
 > **Though Mountain-100 Silver-48 has lowest sale but because it is high value product → $3400 per unit and total sale → $ 122,400 as compare to Water Bottle - 30 oz. → $ 5 per unit only and total sale → $ 21,245. So, both are different class of product so cant be compared.**
 
+Pareto Analysis
 - Only **3 products** sold 3,000+ units.
 - **1/3rd** of the products per unit sale is below 100 units.
 - **79%** of products demand lies below 500 Units.
@@ -286,6 +287,7 @@ The master table contains derived and calculated columns including average/unit 
 
 > **despite having less contribution in total revenue(2.4%) it become best performers in terms of total units sold, accounting for 59.8% of all units sold**
 
+Pareto Anlaysis
 > **For every 100 products sold, approximately 60 were Accessories.**
 
 - In 2013, Accessories represented **58.9% of total units sold**.
@@ -610,7 +612,7 @@ For every bike sold in 2013:
 
 | Priority | Concern | Evidence | Business Impact |
 |---|---|---|---|
-| 🔴 HIGH | Bike revenue dependency | Bikes contribute **96.4%** of total revenue | Any decline directly impacts total business revenue |
+| 🔴 HIGH | Road Bikes revenue dependency | Road Bike category contribute **51.8 %** of total revenue and **45.36 %** of total sales profit  | Any decline directly impacts total business revenue |
 | 🔴 HIGH | Premium product concentration | Mountain-200 family generates **$3.46M** combined profit | Profit concentration / overdependency |
 | 🔴 HIGH | High annual churn | 90%+ reported in most years except 2012 | Potential customer retention problem |
 | 🟠 MEDIUM | Geographic concentration | USA + Australia = **55%** of customers | Regional dependency |
