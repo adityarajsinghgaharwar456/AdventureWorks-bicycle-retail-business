@@ -2210,7 +2210,7 @@ This indicates that functional products have stronger immediate cross-selling re
 
 <div align="center">
 
-### **MONTHLY PERFORMANCE vs ANNUAL BENCHMARK**
+### **MONTHLY PERFORMANCE vs MONTHLY BENCHMARK**
 
 *Actual monthly performance compared against the year's average monthly orders and revenue.*
 
@@ -2222,7 +2222,7 @@ This indicates that functional products have stronger immediate cross-selling re
 
 | Business Question | What the Analysis Examines |
 |---|---|
-| Which months consistently outperformed annual order and revenue benchmarks? | Months performing above the annual average |
+| Which months consistently outperformed annual order and revenue benchmarks? | Months performing above the monthly average |
 | Are revenue and order trends moving together? | Whether order and revenue trends move together |
 | Which periods demonstrate strong customer demand? | Months with stronger order activity |
 | Which months contribute negatively to annual performance? | Months performing below the annual benchmark |
